@@ -1,0 +1,92 @@
+
+var myApp = angular.module("myApp", ['ui.router']);
+// provider 自定义服务,使用$http服务获取数据
+myApp.factory("queryData", function ($http) {
+    var getResult = function (params, url) {
+        return $http.get("http://localhost/cloud_api/index.php/" + url, {params: params});
+    };
+    return {
+        getData: function (params, url) {
+            return getResult(params, url);
+        }
+    }
+});
+
+// 自定义搜索指令
+myApp.directive("searchResult", function ($http, $timeout, queryData) {
+    return {
+        restrict: "AC",
+        link: function (scope, element, attrs) {
+            scope.$watch("name", function (newVal, oldVal) {
+                $timeout(function () {
+                    queryData.getData({name: newVal}, "admin/projects").success(function (data) {
+                        console.log(data);
+                        if (data.status == true) {
+                            scope.data = data.data.data;
+                        }
+                        else {
+                            return false;
+                        }
+                    })
+                }, 400);
+            });
+        }
+    }
+});
+
+
+myApp.config(function ($stateProvider, $urlRouterProvider) {
+    // 设置首次几面加载的内容
+    $urlRouterProvider.when("", "/home");
+    $stateProvider
+        .state("home", {
+            url: "/home",
+            templateUrl: "home.html",
+            controller: homeCtrl
+        })
+        .state("PageTab", {
+            url: "/PageTab",
+            templateUrl: "PageTab.html",
+            controller: PageTabCtrl
+        })
+        .state("PageTab.Page1", {
+            url: "/Page1",
+            templateUrl: "Page1.html"
+        })
+        .state("PageTab.Page2", {
+            url: "/Page2",
+            templateUrl: "Page2.html"
+        })
+        .state("PageTab.Page3", {
+            url: "/Page3",
+            templateUrl: "Page3.html"
+        });
+});
+// 实例化控制器
+function PageTabCtrl($http, $scope, $timeout, $state, $location, $stateParams) {
+    $scope.goFun = function () {
+        // 设置状态,改变路由,界面跳转
+        $state.go("home");
+        /* $location服务有一个特殊的replace方法可以用来告诉$lacation服务下一次自动和浏览器同步，
+         上一条浏览记录应该被替换而不是创建一个新的。
+         这在重定向的时候很好用。
+         不这样的话容易使后退按钮失效（点后退时会又触发重定向）。
+         要改变URL而不添加新的历史记录，你可以这样做 */
+        // $location.path("/home");
+        // $location.replace();
+
+        // 刷新整个界面
+        // window.location.reload();
+
+        // 获取传递过来的id
+        // $scope.getid = $stateParams.id;
+    };
+}
+
+// 首页控制器,引入自定义服务
+function homeCtrl($scope, queryData) {
+    //queryData.getData({uid: 2}).then(function(data) {
+    //    $scope.data = data.data.data;
+    //    console.log(data);
+    //})
+}
